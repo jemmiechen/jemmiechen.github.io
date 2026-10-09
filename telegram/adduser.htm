@@ -18,7 +18,19 @@ function handleNewUser(e) {
   var id = form.ID.value.trim();
   
   if (!name || !id) {
-    alert("請至少填寫姓名與登入名稱！");
+    alert("請至少填寫姓名(使用者名稱)與登入名稱！");
+    return;
+  }
+
+  // 限制使用者名稱為英文，長度限 10 碼
+  if (/[^\x00-\x7F]/.test(name)) {
+    alert("⚠️ 使用者名稱限用純英文（不可包含中文字）！");
+    form.Name.focus();
+    return;
+  }
+  if (name.length > 10) {
+    alert("⚠️ 使用者名稱長度不得超過 10 碼！");
+    form.Name.focus();
     return;
   }
   
@@ -40,7 +52,7 @@ function handleNewUser(e) {
     }
   } catch(err) {}
 
-  alert("恭喜！帳號 [" + id + "] 已成功加入會員資料庫！\n即將為您轉往資料庫選單...");
+  alert("恭喜！帳號 [" + id + "] (使用者名稱: " + name + ") 已成功加入會員資料庫！\n即將為您轉往資料庫選單...");
   window.location.href = "login2.html";
 }
 </script>
@@ -49,7 +61,7 @@ function handleNewUser(e) {
 <table border="0">
 <tr><td align="right"><font size="2">姓&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
     名</font><font size="2">：</font></td>
-<td><font size="2"><input type="text" size="20" name="Name">
+<td><font size="2"><input type="text" size="20" name="Name" maxlength="10" placeholder="限英文(10碼內)">
 </font></td></tr>
 <tr>
   <td align="right"><font size="2">性&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 

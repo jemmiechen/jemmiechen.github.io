@@ -1,32 +1,3 @@
-<?php
-// ==============================================================
-// 影像分類系統 - 資料庫管理與可編輯表格選單 (login2.php)
-// 支援 PHP 後端處理，同時相容純靜態 HTML/JS 執行環境
-// ==============================================================
-if (session_status() === PHP_SESSION_NONE) {
-    @session_start();
-}
-
-$db_file = __DIR__ . '/database_records.json';
-
-// 處理 PHP 後端儲存請求 (若有 PHP 伺服器環境)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
-    header('Content-Type: application/json; charset=utf-8');
-    $action = $_REQUEST['action'];
-    if ($action === 'save' && isset($_POST['data'])) {
-        file_put_contents($db_file, $_POST['data']);
-        echo json_encode(['status' => 'success', 'message' => '資料已儲存至伺服器檔案']);
-        exit;
-    } elseif ($action === 'load') {
-        if (file_exists($db_file)) {
-            echo file_get_contents($db_file);
-        } else {
-            echo json_encode(['status' => 'empty']);
-        }
-        exit;
-    }
-}
-?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -526,7 +497,7 @@ const DEFAULT_DATABASES = {
     name: "會員帳號資料庫",
     fields: [
       { key: "id", label: "帳號ID", type: "text", editable: false },
-      { key: "username", label: "使用者名稱", type: "text", editable: true },
+      { key: "username", label: "Username (英文/限10碼)", type: "text", editable: true, maxLength: 10, pattern: "^[A-Za-z0-9_\\-\\s]{1,10}$" },
       { key: "gender", label: "性別", type: "select", options: ["男", "女", "其他"], editable: true },
       { key: "phone", label: "聯絡電話", type: "text", editable: true },
       { key: "email", label: "電子信箱", type: "text", editable: true },
@@ -534,9 +505,9 @@ const DEFAULT_DATABASES = {
       { key: "status", label: "狀態", type: "badge", options: ["正常", "暫停", "待開通"], editable: true }
     ],
     data: [
-      { id: "ftp", username: "陳春明 (Jemmie)", gender: "男", phone: "0912-345678", email: "jemmie@khcity.xyz", role: "管理員", status: "正常" },
-      { id: "user01", username: "研究員 A", gender: "男", phone: "0922-111222", email: "user01@rpmtw.com", role: "研究員", status: "正常" },
-      { id: "user02", username: "資料採礦實習員", gender: "女", phone: "0933-444555", email: "intern@recabtw.site", role: "一般會員", status: "待開通" }
+      { id: "ftp", username: "Jemmie", gender: "男", phone: "0912-345678", email: "jemmie@khcity.xyz", role: "管理員", status: "正常" },
+      { id: "user01", username: "Researcher", gender: "男", phone: "0922-111222", email: "user01@rpmtw.com", role: "研究員", status: "正常" },
+      { id: "user02", username: "Intern", gender: "女", phone: "0933-444555", email: "intern@recabtw.site", role: "一般會員", status: "待開通" }
     ]
   },
   resource_db: {
@@ -603,6 +574,20 @@ function initApp() {
           }
           if (id === 'RES-05') {
             item.title = '研究論文簡報';
+          }
+        });
+        saveToStorage();
+      }
+
+      // 同步會員名稱為純英文、限 10 碼以內
+      if (database.member_db && Array.isArray(database.member_db.data)) {
+        database.member_db.fields = DEFAULT_DATABASES.member_db.fields;
+        database.member_db.data.forEach(item => {
+          if (item.username === "陳春明 (Jemmie)") item.username = "Jemmie";
+          if (item.username === "研究員 A") item.username = "Researcher";
+          if (item.username === "資料採礦實習員") item.username = "Intern";
+          if (item.username && item.username.length > 10) {
+            item.username = item.username.substring(0, 10);
           }
         });
         saveToStorage();
@@ -741,6 +726,7 @@ function toggleBadgeStatus(rowIndex, field) {
 }
 
 // ==========================================
+// ==========================================
 // 單元格行內編輯 (Inline Cell Editing)
 // ==========================================
 function makeInlineEditable(td, span, rowIndex, fieldKey) {
@@ -749,6 +735,10 @@ function makeInlineEditable(td, span, rowIndex, fieldKey) {
   input.type = 'text';
   input.className = 'cell-input';
   input.value = currentVal;
+  if (fieldKey === 'username') {
+    input.maxLength = 10;
+    input.placeholder = "限英文字母(≤10碼)";
+  }
 
   td.innerHTML = '';
   td.appendChild(input);
@@ -758,7 +748,20 @@ function makeInlineEditable(td, span, rowIndex, fieldKey) {
   function saveValue() {
     if (isSaved) return;
     isSaved = true;
-    const newVal = input.value.trim();
+    let newVal = input.value.trim();
+
+    // 針對使用者名稱之特殊驗證 (英文顯示、限制 10 碼)
+    if (fieldKey === 'username') {
+      if (/[^\x00-\x7F]/.test(newVal)) {
+        showToast("⚠️ 使用者名稱請輸入純英文（不得包含中文字）！", "warning");
+        filterTable();
+        return;
+      }
+      if (newVal.length > 10) {
+        newVal = newVal.substring(0, 10);
+      }
+    }
+
     database[currentTab].data[rowIndex][fieldKey] = newVal;
     saveToStorage();
     filterTable();
@@ -794,7 +797,9 @@ function openAddModal() {
       const opts = f.options.map(o => `<option value="${o}">${o}</option>`).join('');
       inputHtml = `<select id="modal_${f.key}" class="form-control">${opts}</select>`;
     } else {
-      inputHtml = `<input type="${f.type === 'number' ? 'number' : 'text'}" id="modal_${f.key}" class="form-control" placeholder="請輸入${f.label}">`;
+      const maxAttr = f.maxLength ? `maxlength="${f.maxLength}"` : '';
+      const hint = f.key === 'username' ? ' placeholder="請輸入英文名稱 (限10字元)"' : ` placeholder="請輸入${f.label}"`;
+      inputHtml = `<input type="${f.type === 'number' ? 'number' : 'text'}" id="modal_${f.key}" class="form-control"${maxAttr}${hint}>`;
     }
     div.innerHTML = `<label>${f.label}</label>${inputHtml}`;
     container.appendChild(div);
@@ -822,7 +827,8 @@ function openEditModal(rowIndex) {
       const opts = f.options.map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
       inputHtml = `<select id="modal_${f.key}" class="form-control">${opts}</select>`;
     } else {
-      inputHtml = `<input type="text" id="modal_${f.key}" class="form-control" value="${val}" ${f.editable ? '' : 'readonly style="opacity:0.6"'}>`;
+      const maxAttr = f.maxLength ? `maxlength="${f.maxLength}"` : '';
+      inputHtml = `<input type="text" id="modal_${f.key}" class="form-control" value="${val}" ${f.editable ? '' : 'readonly style="opacity:0.6"'}${maxAttr}>`;
     }
     div.innerHTML = `<label>${f.label}</label>${inputHtml}`;
     container.appendChild(div);
@@ -840,10 +846,27 @@ function closeModal() {
 function submitModalData() {
   const fields = database[currentTab].fields;
   const rowObj = {};
-  fields.forEach(f => {
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
     const el = document.getElementById(`modal_${f.key}`);
-    if (el) rowObj[f.key] = el.value.trim();
-  });
+    if (el) {
+      let val = el.value.trim();
+      // 使用者名稱限制驗證：英文、最多10碼
+      if (f.key === 'username') {
+        if (/[^\x00-\x7F]/.test(val)) {
+          showToast("⚠️ 使用者名稱限用純英文，不得輸入中文字！", "warning");
+          el.focus();
+          return;
+        }
+        if (val.length > 10) {
+          showToast("⚠️ 使用者名稱長度不得超過 10 碼！", "warning");
+          el.focus();
+          return;
+        }
+      }
+      rowObj[f.key] = val;
+    }
+  }
 
   if (editingRowIndex !== null) {
     database[currentTab].data[editingRowIndex] = rowObj;
