@@ -409,16 +409,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
 
   <!-- 資料庫類別切換選單 (Tabs) -->
   <div class="db-nav">
-    <button class="db-tab-btn active" onclick="switchTable('image_db')">
+    <button class="db-tab-btn active" data-tab="image_db" onclick="switchTable('image_db', this)">
       🖼️ 影像分類資料庫 (Image DB)
     </button>
-    <button class="db-tab-btn" onclick="switchTable('traffic_db')">
+    <button class="db-tab-btn" data-tab="traffic_db" onclick="switchTable('traffic_db', this)">
       🚦 路口機車監控資料庫 (Traffic DB)
     </button>
-    <button class="db-tab-btn" onclick="switchTable('member_db')">
+    <button class="db-tab-btn" data-tab="member_db" onclick="switchTable('member_db', this)">
       👥 會員帳號資料庫 (Member DB)
     </button>
-    <button class="db-tab-btn" onclick="switchTable('resource_db')">
+    <button class="db-tab-btn" data-tab="resource_db" onclick="switchTable('resource_db', this)">
       📁 網站資源下載清單 (Resource DB)
     </button>
   </div>
@@ -567,11 +567,19 @@ function initApp() {
   renderTable();
 }
 
-function switchTable(tabKey) {
+function switchTable(tabKey, btnEl) {
   currentTab = tabKey;
-  document.querySelectorAll('.db-tab-btn').forEach(btn => btn.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.db-tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-tab') === tabKey) {
+      btn.classList.add('active');
+    }
+  });
+  if (btnEl && btnEl.classList) {
+    btnEl.classList.add('active');
+  }
+  var searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.value = '';
   renderTable();
 }
 
@@ -839,12 +847,10 @@ function resetDefaultData() {
 // ==========================================
 function exportCSV() {
   const db = database[currentTab];
-  let csvContent = "﻿"; // UTF-8 BOM
-  csvContent += db.fields.map(f => `"${f.label}"`).join(",") + "
-";
+  let csvContent = "\uFEFF"; // UTF-8 BOM
+  csvContent += db.fields.map(f => `"${f.label}"`).join(",") + "\r\n";
   db.data.forEach(row => {
-    csvContent += db.fields.map(f => `"${row[f.key] || ''}"`).join(",") + "
-";
+    csvContent += db.fields.map(f => `"${row[f.key] || ''}"`).join(",") + "\r\n";
   });
   downloadFile(`${currentTab}_export.csv`, csvContent, 'text/csv;charset=utf-8;');
   showToast("CSV 匯出成功！");
@@ -877,7 +883,11 @@ function showToast(msg) {
 }
 
 // 啟動應用程式
-document.addEventListener('DOMContentLoaded', initApp);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 </script>
 </body>
 </html>
