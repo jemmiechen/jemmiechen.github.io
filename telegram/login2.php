@@ -31,6 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>資料庫管理選單 - 可編輯資料庫表格</title>
 <style>
@@ -182,6 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
+    user-select: none;
+  }
+  .btn:active {
+    transform: scale(0.97);
   }
   .btn-primary {
     background: var(--primary);
@@ -262,9 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
     border-radius: 4px;
     padding: 3px 6px;
     transition: all 0.2s;
+    display: inline-block;
   }
   .editable-cell:hover {
-    background: rgba(33, 242, 255, 0.12);
+    background: rgba(33, 242, 255, 0.15);
     outline: 1px dashed var(--primary);
   }
   .cell-input {
@@ -291,10 +299,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
   .badge-info { background: rgba(33, 242, 255, 0.2); color: #21f2ff; border: 1px solid rgba(33, 242, 255, 0.4); }
   .badge-danger { background: rgba(231, 81, 90, 0.2); color: #f87171; border: 1px solid rgba(231, 81, 90, 0.4); }
 
-  /* 狀態列通知 */
+  /* 狀態列通知 Toast */
   .status-toast {
     position: fixed;
-    bottom: 24px;
+    top: 24px;
     right: 24px;
     background: #00ab55;
     color: #ffffff;
@@ -302,38 +310,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
     border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 6px 25px rgba(0,0,0,0.6);
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(-20px);
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    z-index: 1000;
+    z-index: 10000;
     display: flex;
     align-items: center;
     gap: 8px;
+    pointer-events: none;
   }
   .status-toast.show {
     opacity: 1;
     transform: translateY(0);
   }
+  .status-toast.warning { background: #e2a03f; }
 
   /* 彈出視窗 (Modal) */
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.75);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 999;
+    z-index: 9999;
   }
-  .modal-overlay.active { display: flex; }
+  .modal-overlay.active {
+    display: flex !important;
+  }
   .modal-box {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
     overflow: hidden;
   }
   .modal-header {
@@ -342,13 +354,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
   }
   .modal-header h3 { font-size: 16px; color: #ffffff; }
   .modal-close {
     background: none; border: none; color: var(--text-secondary);
-    font-size: 20px; cursor: pointer;
+    font-size: 22px; cursor: pointer; padding: 0 6px;
   }
+  .modal-close:hover { color: #ffffff; }
   .modal-body {
     padding: 20px;
     display: flex;
@@ -368,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
     color: var(--text-secondary);
   }
   .form-control {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border);
     color: #ffffff;
     padding: 8px 12px;
@@ -426,8 +439,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_REQUEST['action'])) {
   <!-- 工具列 -->
   <div class="toolbar">
     <div class="toolbar-left">
-      <button class="btn btn-primary" onclick="openAddModal()">➕ 新增一筆記錄</button>
-      <button class="btn btn-success" onclick="saveToStorage(true)">💾 儲存所有修改</button>
+      <button class="btn btn-primary" id="btnAddRow" onclick="openAddModal()">➕ 新增一筆記錄</button>
+      <button class="btn btn-success" id="btnSaveAll" onclick="saveToStorage(true)">💾 儲存所有修改</button>
       <button class="btn btn-secondary" onclick="exportCSV()">📥 匯出 CSV</button>
       <button class="btn btn-secondary" onclick="exportJSON()">📄 匯出 JSON</button>
       <button class="btn btn-danger btn-sm" onclick="resetDefaultData()">↩️ 重置預設資料</button>
@@ -551,6 +564,26 @@ let database = {};
 let editingRowIndex = null;
 
 // ==========================================
+// 錯誤捕捉與安全校驗
+// ==========================================
+window.onerror = function(msg, url, line) {
+  console.error("腳本執行錯誤:", msg, "行號:", line);
+  showToast("⚠️ 提示: " + msg, "warning");
+};
+
+function ensureDatabaseIntegrity() {
+  if (!database || typeof database !== 'object') {
+    database = JSON.parse(JSON.stringify(DEFAULT_DATABASES));
+    return;
+  }
+  for (let key in DEFAULT_DATABASES) {
+    if (!database[key] || !Array.isArray(database[key].fields) || !Array.isArray(database[key].data)) {
+      database[key] = JSON.parse(JSON.stringify(DEFAULT_DATABASES[key]));
+    }
+  }
+}
+
+// ==========================================
 // 初始化與資料載入
 // ==========================================
 function initApp() {
@@ -558,6 +591,7 @@ function initApp() {
   if (localData) {
     try {
       database = JSON.parse(localData);
+      ensureDatabaseIntegrity();
     } catch(e) {
       database = JSON.parse(JSON.stringify(DEFAULT_DATABASES));
     }
@@ -569,53 +603,64 @@ function initApp() {
 
 function switchTable(tabKey, btnEl) {
   currentTab = tabKey;
+  ensureDatabaseIntegrity();
+
   document.querySelectorAll('.db-tab-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabKey) {
       btn.classList.add('active');
     }
   });
+
   if (btnEl && btnEl.classList) {
     btnEl.classList.add('active');
   }
-  var searchInput = document.getElementById('searchInput');
+
+  const searchInput = document.getElementById('searchInput');
   if (searchInput) searchInput.value = '';
+
   renderTable();
+  const dbName = database[currentTab] ? database[currentTab].name : tabKey;
+  showToast(`已切換至【${dbName}】`);
 }
 
 // ==========================================
 // 表格渲染
 // ==========================================
 function renderTable() {
+  ensureDatabaseIntegrity();
   const db = database[currentTab];
   if (!db) return;
 
   const theadRow = document.getElementById('tableHeadRow');
-  theadRow.innerHTML = '';
+  if (theadRow) {
+    theadRow.innerHTML = '';
+    db.fields.forEach(f => {
+      const th = document.createElement('th');
+      th.textContent = f.label;
+      theadRow.appendChild(th);
+    });
+    const thAction = document.createElement('th');
+    thAction.textContent = "操作管理";
+    thAction.style.textAlign = "center";
+    theadRow.appendChild(thAction);
+  }
 
-  // 標題欄
-  db.fields.forEach(f => {
-    const th = document.createElement('th');
-    th.textContent = f.label;
-    theadRow.appendChild(th);
-  });
-  const thAction = document.createElement('th');
-  thAction.textContent = "操作管理";
-  thAction.style.textAlign = "center";
-  theadRow.appendChild(thAction);
-
-  // 內容行
   filterTable();
 }
 
 function filterTable() {
+  ensureDatabaseIntegrity();
   const db = database[currentTab];
-  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (!db) return;
+
+  const searchEl = document.getElementById('searchInput');
+  const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
   const tbody = document.getElementById('tableBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   db.data.forEach((row, rowIndex) => {
-    // 搜尋匹配
     if (query) {
       const match = Object.values(row).some(val => String(val).toLowerCase().includes(query));
       if (!match) return;
@@ -625,7 +670,7 @@ function filterTable() {
 
     db.fields.forEach(f => {
       const td = document.createElement('td');
-      const val = row[f.key] || '';
+      const val = row[f.key] !== undefined ? row[f.key] : '';
 
       if (f.type === 'badge') {
         const badgeSpan = document.createElement('span');
@@ -633,7 +678,7 @@ function filterTable() {
         badgeSpan.textContent = val;
         badgeSpan.classList.add('editable-cell');
         badgeSpan.title = "點擊快速切換狀態";
-        badgeSpan.onclick = () => toggleBadgeStatus(rowIndex, f);
+        badgeSpan.onclick = function() { toggleBadgeStatus(rowIndex, f); };
         td.appendChild(badgeSpan);
       } else {
         const span = document.createElement('span');
@@ -641,14 +686,13 @@ function filterTable() {
         span.textContent = val;
         if (f.editable) {
           span.title = "點擊直接編輯";
-          span.onclick = () => makeInlineEditable(td, span, rowIndex, f.key);
+          span.onclick = function() { makeInlineEditable(td, span, rowIndex, f.key); };
         }
         td.appendChild(span);
       }
       tr.appendChild(td);
     });
 
-    // 操作按鈕
     const tdAction = document.createElement('td');
     tdAction.style.textAlign = "center";
     tdAction.innerHTML = `
@@ -678,6 +722,7 @@ function toggleBadgeStatus(rowIndex, field) {
   database[currentTab].data[rowIndex][field.key] = field.options[nextIdx];
   saveToStorage();
   filterTable();
+  showToast(`已將狀態變更為【${field.options[nextIdx]}】`);
 }
 
 // ==========================================
@@ -694,17 +739,21 @@ function makeInlineEditable(td, span, rowIndex, fieldKey) {
   td.appendChild(input);
   input.focus();
 
+  let isSaved = false;
   function saveValue() {
+    if (isSaved) return;
+    isSaved = true;
     const newVal = input.value.trim();
     database[currentTab].data[rowIndex][fieldKey] = newVal;
     saveToStorage();
     filterTable();
+    showToast("單元格內容已更新儲存！");
   }
 
   input.onblur = saveValue;
   input.onkeydown = function(e) {
     if (e.key === 'Enter') saveValue();
-    if (e.key === 'Escape') filterTable();
+    if (e.key === 'Escape') { isSaved = true; filterTable(); }
   };
 }
 
@@ -713,6 +762,7 @@ function makeInlineEditable(td, span, rowIndex, fieldKey) {
 // ==========================================
 function openAddModal() {
   editingRowIndex = null;
+  ensureDatabaseIntegrity();
   document.getElementById('modalTitle').textContent = `➕ 新增記錄至 [${database[currentTab].name}]`;
   const container = document.getElementById('modalFormContainer');
   container.innerHTML = '';
@@ -735,11 +785,13 @@ function openAddModal() {
     container.appendChild(div);
   });
 
-  document.getElementById('editModal').classList.add('active');
+  const modal = document.getElementById('editModal');
+  modal.classList.add('active');
 }
 
 function openEditModal(rowIndex) {
   editingRowIndex = rowIndex;
+  ensureDatabaseIntegrity();
   const rowData = database[currentTab].data[rowIndex];
   document.getElementById('modalTitle').textContent = `✏️ 編輯記錄 (${rowData.id || ''})`;
   const container = document.getElementById('modalFormContainer');
@@ -749,7 +801,7 @@ function openEditModal(rowIndex) {
   fields.forEach(f => {
     const div = document.createElement('div');
     div.className = 'form-group';
-    const val = rowData[f.key] || '';
+    const val = rowData[f.key] !== undefined ? rowData[f.key] : '';
     let inputHtml = '';
     if (f.options) {
       const opts = f.options.map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
@@ -761,11 +813,13 @@ function openEditModal(rowIndex) {
     container.appendChild(div);
   });
 
-  document.getElementById('editModal').classList.add('active');
+  const modal = document.getElementById('editModal');
+  modal.classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById('editModal').classList.remove('active');
+  const modal = document.getElementById('editModal');
+  if (modal) modal.classList.remove('active');
 }
 
 function submitModalData() {
@@ -809,27 +863,14 @@ function deleteRow(rowIndex) {
 }
 
 // ==========================================
-// 儲存與快取機制 (LocalStorage + PHP 伺服器)
+// 儲存與快取機制 (LocalStorage)
 // ==========================================
 function saveToStorage(notify = false) {
   const jsonStr = JSON.stringify(database);
   localStorage.setItem('telegram_editable_db', jsonStr);
 
-  // 嘗試透過 POST 同步到 PHP 伺服器 (若在支援 PHP 環境)
-  try {
-    const formData = new FormData();
-    formData.append('action', 'save');
-    formData.append('data', jsonStr);
-    fetch('login2.php', { method: 'POST', body: formData })
-      .then(res => res.json())
-      .then(data => {
-        if (notify) showToast("已成功儲存至本機與伺服器資料庫！");
-      })
-      .catch(err => {
-        if (notify) showToast("已儲存至瀏覽器本地資料庫 (LocalStorage)！");
-      });
-  } catch(e) {
-    if (notify) showToast("已儲存至瀏覽器本地資料庫！");
+  if (notify) {
+    showToast("💾 已成功儲存所有變更至資料庫！");
   }
 }
 
@@ -875,11 +916,16 @@ function downloadFile(filename, content, type) {
   URL.revokeObjectURL(url);
 }
 
-function showToast(msg) {
+function showToast(msg, type = "success") {
   const toast = document.getElementById('toastMessage');
-  toast.textContent = "✅ " + msg;
+  if (!toast) return;
+  toast.textContent = (type === "warning" ? "" : "✅ ") + msg;
+  toast.className = "status-toast " + (type === "warning" ? "warning" : "");
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2500);
 }
 
 // 啟動應用程式
