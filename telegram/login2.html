@@ -521,7 +521,7 @@ const DEFAULT_DATABASES = {
       { key: "access", label: "下載權限", type: "badge", options: ["公開", "會員專屬", "管理員"], editable: true }
     ],
     data: [
-      { id: "RES-03", title: "SVM 影像分類伺服端程式", filename: "file/svm4ir.zip", filesize: "1.2 MB", category: "程式原始碼", access: "會員專屬" },
+      { id: "RES-03", title: "SVM 影像分類伺服端程式", filename: "file/svm4ir.zip", filesize: "350 KB", category: "程式原始碼", access: "會員專屬" },
       { id: "RES-04", title: "研究論文研討期刊 001-012", filename: "file/001-012.zip", filesize: "4.8 MB", category: "研討論文", access: "公開" },
       { id: "RES-05", title: "研究論文簡報", filename: "file/thesis.ppt", filesize: "803 KB", category: "簡報圖庫", access: "會員專屬" }
     ]
@@ -561,14 +561,18 @@ function initApp() {
     try {
       database = JSON.parse(localData);
       ensureDatabaseIntegrity();
-      // 清除與網站無關的舊資料 (例如 RES-01, RES-02)，並同步 RES-05 標題為「研究論文簡報」
+      // 清除與網站無關的舊資料 (例如 RES-01, RES-02)，並同步更新 RES-03 與 RES-05 資訊
       if (database.resource_db && Array.isArray(database.resource_db.data)) {
         database.resource_db.data = database.resource_db.data.filter(item => {
           const id = String(item.id || '').toUpperCase();
           return id !== 'RES-01' && id !== 'RES-02';
         });
         database.resource_db.data.forEach(item => {
-          if (String(item.id || '').toUpperCase() === 'RES-05') {
+          const id = String(item.id || '').toUpperCase();
+          if (id === 'RES-03') {
+            item.filesize = '350 KB';
+          }
+          if (id === 'RES-05') {
             item.title = '研究論文簡報';
           }
         });
