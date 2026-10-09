@@ -6,7 +6,44 @@
 <body bgcolor="#FFFFFF">
 <h3 align="center">填寫帳號申請表
 </h3>
-<form action="addin.php" method="POST">
+<form action="addin.php" method="POST" onsubmit="handleNewUser(event)">
+<script>
+function handleNewUser(e) {
+  e.preventDefault();
+  var form = e.target;
+  var name = form.Name.value.trim();
+  var sex = form.Sex.value.trim();
+  var tel = form.Telephone.value.trim();
+  var email = form.Email.value.trim();
+  var id = form.ID.value.trim();
+  
+  if (!name || !id) {
+    alert("請至少填寫姓名與登入名稱！");
+    return;
+  }
+  
+  // Save into telegram_editable_db in localStorage if present
+  try {
+    var raw = localStorage.getItem('telegram_editable_db');
+    var db = raw ? JSON.parse(raw) : null;
+    if (db && db.member_db && db.member_db.data) {
+      db.member_db.data.push({
+        id: id,
+        username: name,
+        gender: sex || "男",
+        phone: tel || "未提供",
+        email: email || "未提供",
+        role: "一般會員",
+        status: "正常"
+      });
+      localStorage.setItem('telegram_editable_db', JSON.stringify(db));
+    }
+  } catch(err) {}
+
+  alert("恭喜！帳號 [" + id + "] 已成功加入會員資料庫！\n即將為您轉往資料庫選單...");
+  window.location.href = "login2.html";
+}
+</script>
 <div align="center">
 <center>
 <table border="0">

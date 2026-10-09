@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資料登錄 - 系統登入</title>
+<style>
+  body {
+    background-color: #FFFFCC;
+    color: #333333;
+    font-family: Arial, "新細明體", sans-serif;
+    margin: 0;
+    padding: 30px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .login-card {
+    background: #ffffff;
+    border: 1px solid #d4d4aa;
+    border-radius: 8px;
+    padding: 24px 30px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  h2 {
+    font-size: 18px;
+    color: #cc0000;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ffcc00;
+    padding-bottom: 8px;
+  }
+  .form-table {
+    width: 100%;
+    margin-bottom: 20px;
+    border-collapse: collapse;
+  }
+  .form-table td {
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+  .form-table td.label-td {
+    text-align: right;
+    font-weight: bold;
+    width: 70px;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #0066cc;
+  }
+  .btn-submit {
+    background: #0066cc;
+    color: #ffffff;
+    border: none;
+    padding: 9px 24px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .btn-submit:hover {
+    background: #004499;
+  }
+  .btn-bypass {
+    background: #28a745;
+    color: #ffffff;
+    border: none;
+    padding: 9px 24px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    text-decoration: none;
+    display: inline-block;
+    box-sizing: border-box;
+  }
+  .btn-bypass:hover {
+    background: #218838;
+  }
+  .hint-box {
+    margin-top: 15px;
+    font-size: 12px;
+    color: #666666;
+    background: #f9f9e8;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px dashed #dcdcaa;
+    line-height: 1.6;
+  }
+  .msg-alert {
+    display: none;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  .msg-error {
+    background: #ffebe8;
+    color: #cc0000;
+    border: 1px solid #ffcccc;
+  }
+  .msg-success {
+    background: #e6f9e6;
+    color: #008800;
+    border: 1px solid #b3e6b3;
+  }
+</style>
+</head>
+<body>
+
+  <div class="login-card">
+    <h2>資料登錄 - 會員與管理員登入</h2>
+
+    <div id="alertBox" class="msg-alert"></div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <table class="form-table">
+        <tr>
+          <td class="label-td">帳　號：</td>
+          <td><input type="text" id="userid" name="userid" value="ftp" required autofocus></td>
+        </tr>
+        <tr>
+          <td class="label-td">密　碼：</td>
+          <td><input type="password" id="pas" name="pas" value="siemens" required></td>
+        </tr>
+      </table>
+
+      <button type="submit" class="btn-submit">確 定 登 入</button>
+      <a href="login2.html" class="btn-bypass">直接開啟資料庫選單 (管理中心)</a>
+    </form>
+
+    <div class="hint-box">
+      🔑 預設管理員帳號：<b>ftp</b> / 密碼：<b>siemens</b><br>
+      驗證通過後將自動進入「可編輯表格資料庫選單」。
+    </div>
+  </div>
+
+<script>
+function handleLogin(e) {
+  e.preventDefault();
+  var u = document.getElementById('userid').value.trim();
+  var p = document.getElementById('pas').value.trim();
+  var alertBox = document.getElementById('alertBox');
+
+  if (u === 'ftp' && p === 'siemens') {
+    alertBox.className = 'msg-alert msg-success';
+    alertBox.textContent = '✅ 驗證成功！正在進入資料庫管理中心...';
+    alertBox.style.display = 'block';
+    sessionStorage.setItem('telegram_auth', 'yes');
+    setTimeout(function() {
+      window.location.href = 'login2.html';
+    }, 800);
+  } else {
+    alertBox.className = 'msg-alert msg-error';
+    alertBox.textContent = '❌ 帳號或密碼錯誤！（預設：ftp / siemens）';
+    alertBox.style.display = 'block';
+  }
+}
+</script>
+
+</body>
+</html>
