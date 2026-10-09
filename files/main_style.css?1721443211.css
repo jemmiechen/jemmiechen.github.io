@@ -262,3 +262,6 @@ div.paragraph ul, div.paragraph ol { padding-left: 3em !important; margin: 5px 0
 div.paragraph li { padding-left: 5px !important; margin: 3px 0 0 !important; }
 div.paragraph ul, div.paragraph ul li { list-style: disc outside !important; }
 div.paragraph ol, div.paragraph ol li { list-style: decimal outside !important; }
+
+/* Hide any Weebly footer promo */
+#weebly-footer-signup-container-v3, .weebly-footer, .footer-published-ab-powered-by, #signup-link-href { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; }
