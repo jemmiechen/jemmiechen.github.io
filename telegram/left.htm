@@ -1,35 +1,82 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-
   <meta name="GENERATOR" content="Microsoft FrontPage 4.0">
   <title>網站資源</title>
-
-
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
-  <base target="_self">
+  <base target="mainFrame">
+  <style>
+    body {
+      background-color: #c0c0c0;
+      margin: 0;
+      padding: 10px 4px;
+      font-family: Arial, "新細明體", sans-serif;
+      font-size: 13px;
+    }
+    .menu-title {
+      color: #cc0000;
+      font-weight: bold;
+      font-size: 15px;
+      text-align: center;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #888888;
+    }
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+    .menu-item a {
+      display: block;
+      color: #000080;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 6px 4px;
+      border: 1px solid #999999;
+      background: #e0e0e0;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .menu-item a:hover {
+      background: #ffffff;
+      color: #cc0000;
+      border-color: #666666;
+    }
+    .menu-item.highlight a {
+      background: #fff0f0;
+      color: #cc0000;
+      border-color: #cc0000;
+    }
+    .menu-item.highlight a:hover {
+      background: #cc0000;
+      color: #ffffff;
+    }
+  </style>
 </head>
 
-<body leftmargin="0" topmargin="0" style="background-color: rgb(192, 192, 192);" marginheight="0" marginwidth="0">
+<body>
 
-<p align="center">　</p>
+  <div class="menu-title">網站資源</div>
 
-<p align="center"><font color="#ff0000">網站資源</font></p>
-
-<p align="center">　</p>
-
-<p align="center">加入會員</p>
-
-<p align="center">　</p>
-
-<p align="center"><font color="#ff0000"><b><a href="login3.php">資料登錄</a></b></font></p>
-
-<p align="center">　</p>
-
-<p align="center"><font color="#ff0000"><b><a href="software.htm">資料下載</a></b></font></p>
-
-<p>　</p>
+  <ul class="menu-list">
+    <li class="menu-item">
+      <a href="adduser.htm" target="mainFrame">加入會員</a>
+    </li>
+    <li class="menu-item highlight">
+      <a href="login2.php" target="mainFrame">資料庫選單</a>
+    </li>
+    <li class="menu-item">
+      <a href="login3.php" target="mainFrame">資料登錄</a>
+    </li>
+    <li class="menu-item">
+      <a href="software.htm" target="mainFrame">資料下載</a>
+    </li>
+  </ul>
 
 </body>
 </html>
